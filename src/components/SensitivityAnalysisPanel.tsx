@@ -19,7 +19,80 @@ import {
   Square,
   Crosshair,
   FileSpreadsheet,
+  Activity,
+  HelpCircle,
+  Check,
 } from 'lucide-react';
+
+/**
+ * Calculates Pearson's linear correlation coefficient (r), R^2, and regression slope & intercept
+ */
+function calculatePearsonCorrelation(xArr: number[], yArr: number[]) {
+  const n = xArr.length;
+  if (n < 2) return { r: 0, rSquared: 0, slope: 0, intercept: 0 };
+
+  let sumX = 0;
+  let sumY = 0;
+  let sumXY = 0;
+  let sumXX = 0;
+  let sumYY = 0;
+
+  for (let i = 0; i < n; i++) {
+    const x = xArr[i];
+    const y = yArr[i];
+    sumX += x;
+    sumY += y;
+    sumXY += x * y;
+    sumXX += x * x;
+    sumYY += y * y;
+  }
+
+  const denomM = n * sumXX - sumX * sumX;
+  const denomR = Math.sqrt((n * sumXX - sumX * sumX) * (n * sumYY - sumY * sumY));
+
+  const slope = denomM !== 0 ? (n * sumXY - sumX * sumY) / denomM : 0;
+  const intercept = (sumY - slope * sumX) / n;
+  const rRaw = denomR !== 0 ? (n * sumXY - sumX * sumY) / denomR : 0;
+  const r = Math.max(-1, Math.min(1, rRaw));
+  const rSquared = r * r;
+
+  return {
+    r: Number(r.toFixed(3)),
+    rSquared: Number(rSquared.toFixed(3)),
+    slope: Number(slope.toFixed(4)),
+    intercept: Number(intercept.toFixed(2)),
+  };
+}
+
+/**
+ * Categorizes correlation magnitude and direction for disaster risk physics
+ */
+function getCorrelationDescriptor(r: number) {
+  const absR = Math.abs(r);
+  let strength = 'Negligible';
+  let badgeClass = 'bg-slate-800 text-slate-300 border-slate-700';
+  let textClass = 'text-slate-400';
+
+  if (absR >= 0.7) {
+    strength = r > 0 ? 'Strong Positive' : 'Strong Inverse (Protective)';
+    badgeClass = r > 0
+      ? 'bg-rose-950/80 text-rose-300 border-rose-700/80'
+      : 'bg-emerald-950/80 text-emerald-300 border-emerald-700/80';
+    textClass = r > 0 ? 'text-rose-400' : 'text-emerald-400';
+  } else if (absR >= 0.35) {
+    strength = r > 0 ? 'Moderate Positive' : 'Moderate Inverse';
+    badgeClass = r > 0
+      ? 'bg-amber-950/80 text-amber-300 border-amber-700/80'
+      : 'bg-teal-950/80 text-teal-300 border-teal-700/80';
+    textClass = r > 0 ? 'text-amber-400' : 'text-teal-400';
+  } else {
+    strength = r >= 0 ? 'Weak Positive' : 'Weak Inverse';
+    badgeClass = 'bg-sky-950/80 text-sky-300 border-sky-800/80';
+    textClass = 'text-sky-400';
+  }
+
+  return { strength, badgeClass, textClass };
+}
 
 interface SensitivityAnalysisPanelProps {
   currentScenario: CycloneScenario;
@@ -100,6 +173,7 @@ export const SensitivityAnalysisPanel: React.FC<SensitivityAnalysisPanelProps> =
   const [yAxisMetric, setYAxisMetric] = useState<YAxisMetric>('breachedAssets');
   const [colorGrouping, setColorGrouping] = useState<ColorGrouping>('mangrove');
   const [showTrendLine, setShowTrendLine] = useState<boolean>(true);
+  const [showCorrelationInfo, setShowCorrelationInfo] = useState<boolean>(false);
 
   // Hover & Active Inspection
   const [hoveredPoint, setHoveredPoint] = useState<SimulationRunPoint | null>(null);
@@ -511,41 +585,55 @@ export const SensitivityAnalysisPanel: React.FC<SensitivityAnalysisPanelProps> =
     return padding.top + innerHeight - ((val - minY) / (maxY - minY)) * innerHeight;
   };
 
-  // Linear Regression Trendline for sensitivity slope
+  // Linear Regression Trendline and Pearson Correlation Analysis
   const regressionLine = useMemo(() => {
     if (filteredPoints.length < 2 || !showTrendLine) return null;
-    const n = filteredPoints.length;
-    let sumX = 0;
-    let sumY = 0;
-    let sumXY = 0;
-    let sumXX = 0;
 
-    filteredPoints.forEach((p) => {
-      const x = getMetricValue(p, xAxisMetric);
-      const y = getMetricValue(p, yAxisMetric);
-      sumX += x;
-      sumY += y;
-      sumXY += x * y;
-      sumXX += x * x;
-    });
+    const xVals = filteredPoints.map((p) => getMetricValue(p, xAxisMetric));
+    const yVals = filteredPoints.map((p) => getMetricValue(p, yAxisMetric));
 
-    const denom = n * sumXX - sumX * sumX;
-    if (denom === 0) return null;
+    const { r, rSquared, slope, intercept } = calculatePearsonCorrelation(xVals, yVals);
+    const descriptor = getCorrelationDescriptor(r);
 
-    const slope = (n * sumXY - sumX * sumY) / denom;
-    const intercept = (sumY - slope * sumX) / n;
+    // Compute comparative Pearson correlations of all 3 primary drivers vs the selected Y impact
+    const windVals = filteredPoints.map((p) => p.windSpeed);
+    const tideVals = filteredPoints.map((p) => p.tide);
+    const mangroveVals = filteredPoints.map((p) => p.mangroveCoverage);
+
+    const corrWind = calculatePearsonCorrelation(windVals, yVals);
+    const corrTide = calculatePearsonCorrelation(tideVals, yVals);
+    const corrMangrove = calculatePearsonCorrelation(mangroveVals, yVals);
 
     const startXVal = minX;
-    const endXVal = maxX * 0.96;
+    const endXVal = maxX * 0.98;
     const startYVal = slope * startXVal + intercept;
     const endYVal = slope * endXVal + intercept;
+
+    const sign = intercept >= 0 ? '+' : '-';
+    const absIntercept = Math.abs(intercept);
+    const equation = `ŷ = ${slope.toFixed(3)}x ${sign} ${absIntercept.toFixed(1)}`;
 
     return {
       x1: scaleX(startXVal),
       y1: scaleY(Math.max(0, startYVal)),
       x2: scaleX(endXVal),
       y2: scaleY(Math.max(0, endYVal)),
-      slope: Number(slope.toFixed(3)),
+      slope,
+      intercept,
+      r,
+      rSquared,
+      equation,
+      strength: descriptor.strength,
+      badgeClass: descriptor.badgeClass,
+      textClass: descriptor.textClass,
+      comparative: {
+        wind: corrWind.r,
+        windDescriptor: getCorrelationDescriptor(corrWind.r),
+        tide: corrTide.r,
+        tideDescriptor: getCorrelationDescriptor(corrTide.r),
+        mangrove: corrMangrove.r,
+        mangroveDescriptor: getCorrelationDescriptor(corrMangrove.r),
+      },
     };
   }, [filteredPoints, xAxisMetric, yAxisMetric, showTrendLine, minX, maxX, minY, maxY]);
 
@@ -748,22 +836,101 @@ export const SensitivityAnalysisPanel: React.FC<SensitivityAnalysisPanelProps> =
 
       {/* Scatter Plot Visualizer Controls */}
       <div className="bg-slate-950/80 rounded-xl border border-slate-800 p-3 space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-1.5">
             <TrendingUp className="w-4 h-4 text-cyan-400" />
             <span className="font-bold text-slate-200 text-xs">Multivariate Scatter Plot</span>
           </div>
 
-          <label className="flex items-center gap-1.5 text-[10px] text-slate-400 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={showTrendLine}
-              onChange={(e) => setShowTrendLine(e.target.checked)}
-              className="rounded bg-slate-900 border-slate-700 text-cyan-500 focus:ring-0"
-            />
-            <span>Trend Curve</span>
-          </label>
+          {/* Interactive Trend Line & Pearson Correlation Toggle */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <button
+              type="button"
+              onClick={() => setShowTrendLine(!showTrendLine)}
+              className={`px-2.5 py-1 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm ${
+                showTrendLine
+                  ? 'bg-cyan-950/90 border-cyan-500 text-cyan-200 ring-1 ring-cyan-500/40'
+                  : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-slate-200'
+              }`}
+              title={showTrendLine ? 'Click to hide regression trend line' : 'Click to display linear regression trend line and correlation coefficient'}
+            >
+              <TrendingUp className={`w-3.5 h-3.5 ${showTrendLine ? 'text-cyan-400' : 'text-slate-400'}`} />
+              <span>Trend Line</span>
+              <span className={`w-2 h-2 rounded-full ${showTrendLine ? 'bg-cyan-400 shadow-[0_0_6px_rgba(34,211,238,0.9)]' : 'bg-slate-600'}`} />
+            </button>
+
+            {showTrendLine && regressionLine && (
+              <button
+                type="button"
+                onClick={() => setShowCorrelationInfo(!showCorrelationInfo)}
+                className={`px-2 py-0.8 rounded-lg border text-[10px] font-mono font-bold flex items-center gap-1 transition ${regressionLine.badgeClass}`}
+                title="Click to view full correlation coefficient & statistical analysis"
+              >
+                <span>r = {regressionLine.r > 0 ? `+${regressionLine.r}` : regressionLine.r}</span>
+                <span className="text-[9px] opacity-80 font-sans hidden sm:inline">({regressionLine.strength})</span>
+                <Info className="w-3 h-3 opacity-80" />
+              </button>
+            )}
+          </div>
         </div>
+
+        {/* Educational Correlation Analysis Drawer */}
+        {showTrendLine && showCorrelationInfo && regressionLine && (
+          <div className="p-3 bg-slate-900/95 border border-cyan-500/40 rounded-xl text-[11px] space-y-2 animate-in fade-in duration-150">
+            <div className="flex items-center justify-between pb-1 border-b border-slate-800">
+              <div className="flex items-center gap-1.5 font-bold text-cyan-300">
+                <Activity className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Pearson Correlation Analysis (r & R²)</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCorrelationInfo(false)}
+                className="text-slate-400 hover:text-slate-200 text-[10px] font-bold"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px]">
+              <div className="p-1.5 rounded-lg bg-slate-950 border border-slate-800">
+                <span className="text-slate-500 block text-[9px] uppercase font-bold">Pearson r</span>
+                <span className="text-xs font-mono font-extrabold text-cyan-300">
+                  {regressionLine.r > 0 ? `+${regressionLine.r}` : regressionLine.r}
+                </span>
+              </div>
+              <div className="p-1.5 rounded-lg bg-slate-950 border border-slate-800">
+                <span className="text-slate-500 block text-[9px] uppercase font-bold">R² Variance</span>
+                <span className="text-xs font-mono font-extrabold text-emerald-400">
+                  {(regressionLine.rSquared * 100).toFixed(1)}%
+                </span>
+              </div>
+              <div className="p-1.5 rounded-lg bg-slate-950 border border-slate-800">
+                <span className="text-slate-500 block text-[9px] uppercase font-bold">Slope (m)</span>
+                <span className="text-xs font-mono font-bold text-slate-200">
+                  {regressionLine.slope > 0 ? `+${regressionLine.slope}` : regressionLine.slope}
+                </span>
+              </div>
+              <div className="p-1.5 rounded-lg bg-slate-950 border border-slate-800">
+                <span className="text-slate-500 block text-[9px] uppercase font-bold">Linear Model</span>
+                <span className="text-[10px] font-mono font-semibold text-purple-300 truncate block">
+                  {regressionLine.equation}
+                </span>
+              </div>
+            </div>
+
+            <p className="text-[10px] text-slate-300 leading-relaxed">
+              {regressionLine.r >= 0.7
+                ? `Strong direct correlation: Increases in ${getMetricLabel(xAxisMetric)} strongly amplify ${getMetricLabel(yAxisMetric)} with high sensitivity.`
+                : regressionLine.r <= -0.7
+                ? `Strong inverse correlation: Expanding ${getMetricLabel(xAxisMetric)} provides significant non-linear attenuation of ${getMetricLabel(yAxisMetric)}.`
+                : regressionLine.r >= 0.35
+                ? `Moderate positive trend: ${getMetricLabel(xAxisMetric)} acts as a contributing factor alongside other coastal hydrodynamic drivers.`
+                : regressionLine.r <= -0.35
+                ? `Moderate inverse damping: ${getMetricLabel(xAxisMetric)} mitigates hazard impact in conjunction with bathymetric factors.`
+                : `Low linear correlation: Variation in ${getMetricLabel(yAxisMetric)} is primarily dictated by other variables in the multivariate system.`}
+            </p>
+          </div>
+        )}
 
         {/* Axis Selectors */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[10px]">
@@ -860,18 +1027,31 @@ export const SensitivityAnalysisPanel: React.FC<SensitivityAnalysisPanelProps> =
               strokeWidth="1.5"
             />
 
-            {/* Regression Sensitivity Curve */}
+            {/* Regression Sensitivity Curve & Glow */}
             {regressionLine && (
-              <line
-                x1={regressionLine.x1}
-                y1={regressionLine.y1}
-                x2={regressionLine.x2}
-                y2={regressionLine.y2}
-                stroke="#38bdf8"
-                strokeWidth="1.75"
-                strokeDasharray="4 4"
-                opacity="0.75"
-              />
+              <g className="transition-all duration-300 pointer-events-none">
+                {/* Ambient Soft Glow */}
+                <line
+                  x1={regressionLine.x1}
+                  y1={regressionLine.y1}
+                  x2={regressionLine.x2}
+                  y2={regressionLine.y2}
+                  stroke="#38bdf8"
+                  strokeWidth="5"
+                  opacity="0.25"
+                />
+                {/* Crisp Dashed Regression Vector */}
+                <line
+                  x1={regressionLine.x1}
+                  y1={regressionLine.y1}
+                  x2={regressionLine.x2}
+                  y2={regressionLine.y2}
+                  stroke="#38bdf8"
+                  strokeWidth="2"
+                  strokeDasharray="5 3"
+                  opacity="0.95"
+                />
+              </g>
             )}
 
             {/* X-Axis Tick Labels */}
@@ -996,10 +1176,27 @@ export const SensitivityAnalysisPanel: React.FC<SensitivityAnalysisPanelProps> =
             })}
           </svg>
 
+          {/* Trend Line Correlation HUD Overlay */}
+          {showTrendLine && regressionLine && (
+            <div className="absolute top-2 left-2 z-10 flex items-center gap-1.5 px-2 py-0.8 rounded-lg bg-slate-950/90 border border-slate-700/80 text-[9px] font-mono shadow-xl backdrop-blur-sm">
+              <TrendingUp className="w-3 h-3 text-cyan-400 shrink-0" />
+              <span className="font-extrabold text-cyan-300">
+                r = {regressionLine.r > 0 ? `+${regressionLine.r}` : regressionLine.r}
+              </span>
+              <span className="text-slate-500">|</span>
+              <span className="text-emerald-400 font-semibold">
+                R² = {regressionLine.rSquared}
+              </span>
+              <span className={`px-1 py-0.2 rounded text-[8px] font-bold border ml-0.5 ${regressionLine.badgeClass}`}>
+                {regressionLine.strength}
+              </span>
+            </div>
+          )}
+
           {/* Current Benchmark Legend Indicator */}
           <div className="absolute top-2 right-2 flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-900/90 border border-cyan-500/50 text-[9px] font-mono text-cyan-300 shadow">
             <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-            <span>Active Scenario Benchmark</span>
+            <span>Active Benchmark</span>
           </div>
         </div>
 
@@ -1078,16 +1275,109 @@ export const SensitivityAnalysisPanel: React.FC<SensitivityAnalysisPanelProps> =
 
       {/* Statistical Sensitivity & Elasticity Insights */}
       {insights && (
-        <div className="bg-slate-950/80 rounded-xl border border-slate-800 p-3 space-y-2">
+        <div className="bg-slate-950/80 rounded-xl border border-slate-800 p-3 space-y-3">
           <div className="flex items-center justify-between text-[11px] font-bold text-slate-300">
             <span className="flex items-center gap-1.5">
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
               <span>Sensitivity & Elasticity Insights</span>
             </span>
-            <span className="text-[10px] font-mono text-slate-400">
-              Regression Slope: {regressionLine?.slope || 'N/A'}
-            </span>
+            {regressionLine && showTrendLine && (
+              <span className="text-[10px] font-mono text-cyan-400 flex items-center gap-1">
+                <span>Slope: {regressionLine.slope > 0 ? `+${regressionLine.slope}` : regressionLine.slope}</span>
+                <span className="text-slate-500">|</span>
+                <span>r = {regressionLine.r > 0 ? `+${regressionLine.r}` : regressionLine.r}</span>
+              </span>
+            )}
           </div>
+
+          {/* Dedicated Correlation & Variable Sensitivity Matrix Card (when Trend Line is active) */}
+          {showTrendLine && regressionLine && (
+            <div className="p-2.5 rounded-lg bg-slate-900/90 border border-cyan-500/30 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-cyan-300 flex items-center gap-1">
+                  <TrendingUp className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Correlation with {getMetricLabel(yAxisMetric)}:</span>
+                </span>
+                <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold border ${regressionLine.badgeClass}`}>
+                  Active r = {regressionLine.r > 0 ? `+${regressionLine.r}` : regressionLine.r} ({regressionLine.strength})
+                </span>
+              </div>
+
+              {/* 3-Variable Comparative Impact Correlation Grid */}
+              <div className="grid grid-cols-3 gap-1.5 text-[10px]">
+                {/* Wind vs Impact */}
+                <div className="p-1.5 rounded bg-slate-950 border border-slate-800 space-y-0.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-slate-300 flex items-center gap-1 text-[9px]">
+                      <Wind className="w-2.5 h-2.5 text-cyan-400" />
+                      <span>Wind Speed</span>
+                    </span>
+                    <span className={`font-mono font-bold text-[9px] ${regressionLine.comparative.windDescriptor.textClass}`}>
+                      {regressionLine.comparative.wind > 0 ? `+${regressionLine.comparative.wind}` : regressionLine.comparative.wind}
+                    </span>
+                  </div>
+                  <div className="text-[8px] text-slate-400 truncate">
+                    {regressionLine.comparative.windDescriptor.strength}
+                  </div>
+                </div>
+
+                {/* Tide vs Impact */}
+                <div className="p-1.5 rounded bg-slate-950 border border-slate-800 space-y-0.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-slate-300 flex items-center gap-1 text-[9px]">
+                      <Waves className="w-2.5 h-2.5 text-sky-400" />
+                      <span>Astronomical Tide</span>
+                    </span>
+                    <span className={`font-mono font-bold text-[9px] ${regressionLine.comparative.tideDescriptor.textClass}`}>
+                      {regressionLine.comparative.tide > 0 ? `+${regressionLine.comparative.tide}` : regressionLine.comparative.tide}
+                    </span>
+                  </div>
+                  <div className="text-[8px] text-slate-400 truncate">
+                    {regressionLine.comparative.tideDescriptor.strength}
+                  </div>
+                </div>
+
+                {/* Mangrove vs Impact */}
+                <div className="p-1.5 rounded bg-slate-950 border border-slate-800 space-y-0.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-slate-300 flex items-center gap-1 text-[9px]">
+                      <Trees className="w-2.5 h-2.5 text-emerald-400" />
+                      <span>Mangrove Buffer</span>
+                    </span>
+                    <span className={`font-mono font-bold text-[9px] ${regressionLine.comparative.mangroveDescriptor.textClass}`}>
+                      {regressionLine.comparative.mangrove > 0 ? `+${regressionLine.comparative.mangrove}` : regressionLine.comparative.mangrove}
+                    </span>
+                  </div>
+                  <div className="text-[8px] text-slate-400 truncate">
+                    {regressionLine.comparative.mangroveDescriptor.strength}
+                  </div>
+                </div>
+              </div>
+
+              {/* Dynamic Sensitivity Interpretation */}
+              <div className="text-[9px] text-slate-300 font-sans leading-tight pt-0.5 border-t border-slate-800/80">
+                {(() => {
+                  const windAbs = Math.abs(regressionLine.comparative.wind);
+                  const tideAbs = Math.abs(regressionLine.comparative.tide);
+                  const mangAbs = Math.abs(regressionLine.comparative.mangrove);
+                  const maxCorr = Math.max(windAbs, tideAbs, mangAbs);
+                  const primaryDriver =
+                    maxCorr === windAbs
+                      ? 'Cyclone Wind Speed'
+                      : maxCorr === tideAbs
+                      ? 'Astronomical Tidal Phase'
+                      : 'Mangrove Biosphere Shielding';
+
+                  return (
+                    <span>
+                      <strong>Primary Sensitivity Driver:</strong>{' '}
+                      <span className="text-cyan-300 font-bold">{primaryDriver}</span> has the highest linear correlation with {getMetricLabel(yAxisMetric)} (|r| = {maxCorr.toFixed(2)}).
+                    </span>
+                  );
+                })()}
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[10px]">
             {/* Mangrove Buffer Benefit */}
