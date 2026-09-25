@@ -1,0 +1,197 @@
+import { HistoricalCycloneEvent } from '../types/cyclone';
+
+export const HISTORICAL_CYCLONES: HistoricalCycloneEvent[] = [
+  {
+    id: 'hist-amphan-2020',
+    name: 'Super Cyclone Amphan',
+    year: 2020,
+    month: 'May',
+    timelineDates: 'May 16 – May 21, 2020',
+    category: 'Super Cyclonic Storm (Cat 5 Equiv.)',
+    peakWindsKmh: 260,
+    centralPressureHpa: 920,
+    peakSurgeMeters: 5.0,
+    totalWaterLevelMeters: 5.85,
+    economicDamageBillionUsd: 13.8,
+    substationsAffected: 28,
+    embankmentBreachKm: 162,
+    evacueesCount: 2400000,
+    casualtiesReported: 128,
+    landfallLocation: 'Bakkhali & Sagar Island, West Bengal',
+    landfallCoordinates: { lat: 21.65, lng: 88.28 },
+    trackCoordinates: [
+      [11.2, 86.4],
+      [13.8, 86.3],
+      [16.2, 86.5],
+      [18.5, 87.1],
+      [20.1, 87.8],
+      [21.65, 88.28], // Landfall Bakkhali
+      [22.57, 88.36], // Kolkata Eye Passage
+      [23.9, 88.9],
+      [25.2, 89.8],
+    ],
+    primaryDisruptionSignature:
+      'Catastrophic urban electrical blackout across Kolkata Metropolitan Area; 162 km of Sundarbans coastal polder earthen embankments completely washed out, flooding 89 villages with saline seawater.',
+    resilienceLessonsLearned:
+      'Demonstrated critical need for underground cabling of 132/33kV transmission feeders and early mandatory de-energization of littoral switchyards to prevent transformer explosions.',
+  },
+  {
+    id: 'hist-yaas-2021',
+    name: 'Very Severe Cyclone Yaas',
+    year: 2021,
+    month: 'May',
+    timelineDates: 'May 23 – May 28, 2021',
+    category: 'Very Severe Cyclonic Storm',
+    peakWindsKmh: 140,
+    centralPressureHpa: 970,
+    peakSurgeMeters: 3.8,
+    totalWaterLevelMeters: 6.1, // Coincided with Perigean Spring Tide ("Supermoon" tidal resonance)
+    economicDamageBillionUsd: 2.84,
+    substationsAffected: 16,
+    embankmentBreachKm: 210,
+    evacueesCount: 2100000,
+    casualtiesReported: 20,
+    landfallLocation: 'Dhamra Port & Bhadrak Coast, Odisha',
+    landfallCoordinates: { lat: 20.82, lng: 86.96 },
+    trackCoordinates: [
+      [15.8, 89.2],
+      [17.4, 88.6],
+      [18.9, 87.8],
+      [20.1, 87.3],
+      [20.82, 86.96], // Landfall Dhamra
+      [21.75, 86.3],
+      [22.8, 85.5],
+    ],
+    primaryDisruptionSignature:
+      'Coincided with astronomical Perigean Spring Tide ("Supermoon"), generating an unprecedented tidal resonance that overtopped embankments despite moderate wind speeds, inundating over 1,100 villages in Odisha and Bengal.',
+    resilienceLessonsLearned:
+      'Emphasized that total water level (TWL = Surge + Astronomical Tide) rather than wind speed alone dictates structural flood failure; prompted bathymetric hydrodynamic forecasting models.',
+  },
+  {
+    id: 'hist-odisha-1999',
+    name: '1999 Odisha Super Cyclone (05B)',
+    year: 1999,
+    month: 'October',
+    timelineDates: 'Oct 25 – Nov 4, 1999',
+    category: 'Super Cyclonic Storm (Deadliest Modern Benchmark)',
+    peakWindsKmh: 260,
+    centralPressureHpa: 912,
+    peakSurgeMeters: 6.8,
+    totalWaterLevelMeters: 7.9,
+    economicDamageBillionUsd: 4.5, // 1999 valuation (~$8.5B inflation adjusted)
+    substationsAffected: 45,
+    embankmentBreachKm: 340,
+    evacueesCount: 150000,
+    casualtiesReported: 9887,
+    landfallLocation: 'Paradip & Erasama, Jagatsinghpur, Odisha',
+    landfallCoordinates: { lat: 20.31, lng: 86.61 },
+    trackCoordinates: [
+      [11.5, 89.5],
+      [14.2, 88.2],
+      [16.8, 87.4],
+      [18.8, 86.9],
+      [20.31, 86.61], // Landfall Paradip
+      [20.5, 86.4],
+      [20.2, 86.2],
+    ],
+    primaryDisruptionSignature:
+      'Massive 6.8m wall of ocean water penetrated up to 35 km inland through Erasama block, wiping out entire taluks, devastating all kutcha telecom towers, roads, and rail lines for weeks.',
+    resilienceLessonsLearned:
+      'Catalyzed the birth of the National Disaster Management Authority (NDMA), OSDMA, and the construction of over 800 elevated reinforced concrete multi-purpose cyclone shelters across the Indian coastline.',
+  },
+  {
+    id: 'hist-aila-2009',
+    name: 'Severe Cyclone Aila',
+    year: 2009,
+    month: 'May',
+    timelineDates: 'May 23 – May 26, 2009',
+    category: 'Severe Cyclonic Storm',
+    peakWindsKmh: 120,
+    centralPressureHpa: 967,
+    peakSurgeMeters: 3.5,
+    totalWaterLevelMeters: 4.6,
+    economicDamageBillionUsd: 1.05,
+    substationsAffected: 12,
+    embankmentBreachKm: 1750, // Massive continuous polder collapse
+    evacueesCount: 950000,
+    casualtiesReported: 339,
+    landfallLocation: 'Sagar Island & Gosaba, Sundarbans',
+    landfallCoordinates: { lat: 21.68, lng: 88.15 },
+    trackCoordinates: [
+      [16.5, 88.0],
+      [18.2, 88.1],
+      [19.9, 88.1],
+      [21.68, 88.15], // Landfall Sagar
+      [22.9, 88.3],
+      [24.5, 88.7],
+    ],
+    primaryDisruptionSignature:
+      'Unprecedented chronic embankment collapse: over 1,750 km of mud dykes breached, trapping saline tidal water in paddy fields for over 3 years, destroying regional agriculture and drinking water ponds.',
+    resilienceLessonsLearned:
+      'Initiated the Sundarbans Embankment Reconstruction Project (SERP), substituting loose clay dykes with geo-synthetic tube revetments and mangrove green buffers.',
+  },
+  {
+    id: 'hist-sidr-2007',
+    name: 'Super Cyclone Sidr',
+    year: 2007,
+    month: 'November',
+    timelineDates: 'Nov 11 – Nov 16, 2007',
+    category: 'Very Severe Cyclonic Storm (Cat 5 Equiv.)',
+    peakWindsKmh: 250,
+    centralPressureHpa: 944,
+    peakSurgeMeters: 5.5,
+    totalWaterLevelMeters: 6.2,
+    economicDamageBillionUsd: 1.7,
+    substationsAffected: 32,
+    embankmentBreachKm: 285,
+    evacueesCount: 3000000,
+    casualtiesReported: 3406,
+    landfallLocation: 'Baleshwar River & Sundarbans, Bangladesh',
+    landfallCoordinates: { lat: 21.95, lng: 89.85 },
+    trackCoordinates: [
+      [10.2, 92.5],
+      [13.5, 91.0],
+      [16.8, 89.8],
+      [19.5, 89.5],
+      [21.95, 89.85], // Landfall
+      [23.4, 90.2],
+      [24.8, 91.1],
+    ],
+    primaryDisruptionSignature:
+      'Massive 5.5m tidal wave swept through the world’s largest mangrove forest (Sundarbans), snapping 25% of the dense canopy and devastating riverine fishing flotillas.',
+    resilienceLessonsLearned:
+      'Proved that the Sundarbans forest absorbed up to 40% of the kinetic energy of the surge wave, preventing far worse inland destruction in Khulna and Barisal.',
+  },
+  {
+    id: 'hist-fani-2019',
+    name: 'Extremely Severe Cyclone Fani',
+    year: 2019,
+    month: 'April – May',
+    timelineDates: 'April 26 – May 5, 2019',
+    category: 'Extremely Severe Cyclonic Storm',
+    peakWindsKmh: 215,
+    centralPressureHpa: 937,
+    peakSurgeMeters: 4.2,
+    totalWaterLevelMeters: 5.1,
+    economicDamageBillionUsd: 8.1,
+    substationsAffected: 24,
+    embankmentBreachKm: 98,
+    evacueesCount: 1400000,
+    casualtiesReported: 89,
+    landfallLocation: 'Puri Beach & Chilika Lake, Odisha',
+    landfallCoordinates: { lat: 19.78, lng: 85.81 },
+    trackCoordinates: [
+      [8.5, 88.0],
+      [11.5, 86.5],
+      [14.2, 85.0],
+      [17.0, 84.8],
+      [19.78, 85.81], // Landfall Puri
+      [21.2, 86.8],
+      [22.8, 88.2],
+    ],
+    primaryDisruptionSignature:
+      'Record-breaking structural wind destructuring along Puri urban heritage corridor, snapping 156,000 electric poles and collapsing heavy transmission switchyards.',
+    resilienceLessonsLearned:
+      'World-renowned evacuation benchmark: 1.4 million residents moved into concrete cyclone shelters in under 24 hours with zero-casualty mission command.',
+  },
+];

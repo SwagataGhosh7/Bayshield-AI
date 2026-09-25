@@ -1,0 +1,6 @@
+{
+  "name": "BayShield AI — Cyclone Impact & Infrastructure Forecaster",
+  "description": "Predictive storm surge, hydrological runoff, and critical infrastructure vulnerability forecasting platform for Bay of Bengal & APAC coastal disaster response.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
